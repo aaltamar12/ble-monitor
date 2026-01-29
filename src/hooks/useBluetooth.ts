@@ -58,3 +58,23 @@ export function useBluetooth() {
 
   return { isSupported, device, connecting, error, heartRate, connect, disconnect };
 }
+
+
+/**
+ * Android Chrome BLE notification fix:
+ * startNotifications() sometimes resolves but never fires events on Android 12+
+ * due to aggressive BLE power management dropping the connection to "idle".
+ *
+ * Fix: immediately read the characteristic after startNotifications() to keep
+ * the GATT connection active until the first notification arrives.
+ */
+export async function startNotificationsWithWarmup(
+  characteristic: BluetoothRemoteGATTCharacteristic,
+): Promise<void> {
+  await characteristic.startNotifications();
+  try {
+    await characteristic.readValue();
+  } catch {
+    // Non-fatal: some characteristics are notify-only
+  }
+}
